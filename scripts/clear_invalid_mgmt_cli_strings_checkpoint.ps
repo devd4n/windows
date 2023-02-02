@@ -1,0 +1,67 @@
+$final_challenge = 'add access-rule name " bla bla bla " comments "bla1 bla2 comment" '
+
+function log {
+	param ($log_string)
+	Write-Host $log_string
+}
+##TODO CLEANUP
+## - no ascii chars
+## - spaces at begining and end
+## - at begining and end and "" doublequote
+## Replace all Whitespaces with $$$$$ that the parsing works.
+
+function clear_mgmt_cli_string {
+	param ($mgmt_cli_string)
+  $tmp_string = $final_challenge
+  $result_string = $final_challenge
+  $tmp_string | Select-String -AllMatches -Pattern '"[^"]*"' | foreach {
+          $match_id = 1
+          foreach ($match in $_.Matches) {
+            $replace_target = $match.Value
+            $replace_string = $replace_target -replace ' ','§§§§§'
+            log("match-id: $counter `n replace source: $result_string `n replace target: $replace_target `n replace string: $replace_string")
+            $result_string = $result_string -replace $replace_target,$replace_string
+            $match_id += 1
+          }
+  }
+  return $result_string
+}
+
+function parse_key_values {
+	param($string_to_parse)
+  ## Parse Key Value Pairs
+  $allowed_keys = @("uid","layer","name","comments","install-on.target.1","custom-field.1")
+  $splitted = $string_to_parse
+  $splitted = $splitted.split(" ")
+  for ($i=0; $i -lt $splitted.length; $i++){
+      if ($i -eq 0) {
+      log("---------- new Object/rule ----------")
+      log("action:" + $splitted[$i])
+      }
+      elseif ($i -eq 1) {
+        log("obj-type:" + $splitted[$i])
+      }
+      elseif ($i % 2 -eq 0) {
+        $key= $splitted[$i]
+        if ($allowed_keys -contains $key) {
+        log("key:" + $splitted[$i])
+        }
+        else {
+        log("ERROR - invalid key !!!")
+        }
+      }
+      elseif ($i % 2 -eq 1) {
+        log("value:" + $splitted[$i])
+      }
+  }
+}
+
+##[regex]$pattern = '"[^"]*"'
+##$test_string = $pattern.replace($final_challenge, "§§§§1", 100)
+Write-Host "-----------------"
+$result = clear_mgmt_cli_string($final_challenge)
+Write-Host "final result: $result"
+parse_key_values($result)
+#
+#Write-Host $key1
+## Created with: https://code.labstack.com/powershell
