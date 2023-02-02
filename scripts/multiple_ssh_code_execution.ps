@@ -1,0 +1,23 @@
+$RootDirPath = "path/to/scriptdir"
+
+$commands_file_path = Read-Host -Prompt 'Geben Sie den Namen der Datei mit den Kommandos an:'
+$hosts_file_path = Read-Host -Prompt 'Geben Sie den Namen der Datei mit den Ziel-hosts an:'
+$User = Read-Host -Prompt 'Admin-User-Name:'
+$Password = Read-Host -Prompt 'Admin-User-Psw:'
+
+$Commands = Get-Content -PATH ($RootDirPath + $commands_file_path)
+
+#$DeviceArray = "hostname1","hostname2", "hostname3"
+$DeviceArray = Get-Content -PATH ($RootDirPath + $hosts_file_path)
+
+foreach ($Device in $DeviceArray)
+{
+Write-Host "CONNECT TO: $Device"
+$DeviceFile = ($RootDirPath + '/' + $Device + '_config_after.txt')
+if (!(Test-Path -Path $DeviceFile)) {
+New-Item $DeviceFile -ItemType file
+}
+$Commands | &'C:\Program Files\PuTTY\plink.exe' -ssh $Device -pw $Password -l $User | Out-File $DeviceFile -Append -Encoding utf8
+
+(Get-Content $DeviceFile -Encoding utf8) -replace "password.*$", 'password.....' -replace "passphrase.*$", 'passphrase.....' -replace "username.*$", 'username.....' -replace "community.*$", 'community.....' | Out-File $DeviceFile -Encoding utf8
+}
